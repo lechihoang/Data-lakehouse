@@ -1,5 +1,17 @@
 FROM apache/airflow:3.0.6-python3.12
-RUN pip install --no-cache-dir apache-airflow-providers-apache-spark pyspark==3.5.0 trino[sqlalchemy]
+COPY requirements.txt .
+
+ARG AIRFLOW_VERSION=3.0.6
+ARG PYTHON_VERSION=3.12
+ARG AIRFLOW_CONSTRAINTS_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+
+RUN pip install --no-cache-dir \
+    --no-deps \
+    -r requirements.txt && \
+    pip install --no-cache-dir \
+    apache-airflow-providers-fab \
+    apache-airflow-providers-apache-spark \
+    trino[sqlalchemy]
 
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
