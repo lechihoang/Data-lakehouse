@@ -10,20 +10,20 @@
 
 {% if is_incremental() %}
 WITH watermark AS (
-    SELECT MAX(last_event_ts_ms) - 2 * 3600 * 1000 AS cutoff FROM {{ this }}
+    SELECT MAX(last_event_ts) - INTERVAL '2' HOUR AS cutoff FROM {{ this }}
 ),
 recent_session_ids AS (
     SELECT DISTINCT e.session_id
     FROM {{ ref('intermediate_events') }} e
     CROSS JOIN watermark w
-    WHERE e.event_ts_ms > w.cutoff
+    WHERE e.kafka_ts > w.cutoff
 )
 {% endif %}
 
 SELECT
     session_id,
     MAX(user_id)                                                        AS user_id,
-    CAST(date_format(date_trunc('day', from_unixtime(MIN(event_ts_ms) / 1000)), '%Y%m%d') AS INTEGER) AS date_key,
+    CAST(date_format(date_trunc('day', MIN(e.kafka_ts)), '%Y%m%d') AS INTEGER) AS date_key,
     MAX(traffic_source)                                                 AS traffic_source,
     MAX(browser)                                                        AS browser,
     MAX(city)                                                           AS city,
@@ -39,18 +39,16 @@ SELECT
     MAX(CASE WHEN event_type = 'cancel'                    THEN 1 ELSE 0 END) AS hit_cancel,
     MAX(CASE WHEN event_type = 'return'                    THEN 1 ELSE 0 END) AS hit_return,
     -- Date
-    date(from_unixtime(MIN(event_ts_ms) / 1000))                       AS session_date,
+    date(MIN(e.kafka_ts))                                               AS session_date,
     -- Measures
     COUNT(event_id)                                                     AS total_events,
-    MIN(from_unixtime(event_ts_ms / 1000))                             AS session_start_at,
-    MAX(from_unixtime(event_ts_ms / 1000))                             AS session_end_at,
-    date_diff('second',
-        MIN(from_unixtime(event_ts_ms / 1000)),
-        MAX(from_unixtime(event_ts_ms / 1000)))                        AS session_duration_seconds,
+    MIN(e.kafka_ts)                                                     AS session_start_at,
+    MAX(e.kafka_ts)                                                     AS session_end_at,
+    date_diff('second', MIN(e.kafka_ts), MAX(e.kafka_ts))             AS session_duration_seconds,
     -- Watermark for incremental runs
-    MAX(event_ts_ms)                                                    AS last_event_ts_ms
+    MAX(e.kafka_ts)                                                    AS last_event_ts
 
-FROM {{ ref('intermediate_events') }}
+FROM {{ ref('intermediate_events') }} e
 
 {% if is_incremental() %}
 WHERE session_id IN (SELECT session_id FROM recent_session_ids)

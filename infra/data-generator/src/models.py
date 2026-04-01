@@ -433,10 +433,10 @@ class Event(ModelMixin):
                 postal_code=postal_code,
                 browser=browser,
                 traffic_source=traffic_source,
-                uri=Event._generate_uri(event_type, order_item_id, product_id),
+                uri=Event.generateUri(event_type, order_item_id, product_id),
                 event_type=event_type,
                 created_at=created_at
-                - Event._calculate_event_delay(len(event_types), idx, fake),
+                - Event.calculateEventDelay(len(event_types), idx, fake),
             )
             for idx, event_type in enumerate(event_types)
         ]
@@ -446,7 +446,7 @@ class Event(ModelMixin):
         return f"Event(id={self.id}, is_ghost={self.user_id is None}, sequence_number={self.sequence_number}, event_type={self.event_type}, created_at={self.created_at})"
 
     @staticmethod
-    def _generate_uri(event_type: str, item_id: Optional[str], product_id: int) -> str:
+    def generateUri(event_type: str, item_id: Optional[str], product_id: int) -> str:
         if event_type == "product":
             return f"/{event_type}/{product_id}"
         elif event_type == "department":
@@ -463,7 +463,7 @@ class Event(ModelMixin):
             return f"/{event_type}"
 
     @staticmethod
-    def _calculate_event_delay(
+    def calculateEventDelay(
         num_events: int, idx: int, fake: Faker
     ) -> datetime.timedelta:
         if num_events == idx + 1:

@@ -27,6 +27,8 @@ DBT_PROJECT_PATH = Path("/opt/airflow/dbt")
 project_config = ProjectConfig(
     dbt_project_path=DBT_PROJECT_PATH,
     project_name="thelook_lakehouse",
+    install_dbt_deps=False,
+    manifest_path=DBT_PROJECT_PATH / "target" / "manifest.json",
 )
 
 profile_config = ProfileConfig(
@@ -37,13 +39,13 @@ profile_config = ProfileConfig(
 
 execution_config = ExecutionConfig(
     execution_mode=ExecutionMode.LOCAL,
-    dbt_executable_path="/home/airflow/.local/bin/dbt",
+    dbt_executable_path="/opt/dbt_venv/bin/dbt",
 )
 
 with DAG(
     dag_id="thelook_dbt_pipeline",
     description="Daily dbt transformations — Bronze → Silver → Gold",
-    schedule_interval="0 23 * * *",
+    schedule="0 23 * * *",
     start_date=datetime(2024, 1, 1),
     catchup=False,
     default_args={"owner": "airflow", "retries": 2},
@@ -57,7 +59,7 @@ with DAG(
         profile_config=profile_config,
         execution_config=execution_config,
         render_config=RenderConfig(
-            load_method=LoadMode.DBT_LS,
+            load_method=LoadMode.DBT_MANIFEST,
             test_behavior=TestBehavior.AFTER_EACH,
             select=["path:models/staging"],
         ),
@@ -69,7 +71,7 @@ with DAG(
         profile_config=profile_config,
         execution_config=execution_config,
         render_config=RenderConfig(
-            load_method=LoadMode.DBT_LS,
+            load_method=LoadMode.DBT_MANIFEST,
             test_behavior=TestBehavior.AFTER_EACH,
             select=["path:models/intermediate"],
         ),
@@ -81,7 +83,7 @@ with DAG(
         profile_config=profile_config,
         execution_config=execution_config,
         render_config=RenderConfig(
-            load_method=LoadMode.DBT_LS,
+            load_method=LoadMode.DBT_MANIFEST,
             test_behavior=TestBehavior.AFTER_EACH,
             select=["path:models/mart"],
         ),

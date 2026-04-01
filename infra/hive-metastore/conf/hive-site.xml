@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <configuration>
-    <!-- Thrift URI -->
+    <!-- Thrift URI (Hive 3.x) -->
     <property>
-        <name>metastore.thrift.uris</name>
+        <name>hive.metastore.uris</name>
         <value>thrift://hive-metastore:9083</value>
     </property>
 
@@ -62,28 +62,6 @@
     <property>
         <name>fs.s3a.aws.credentials.provider</name>
         <value>org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider</value>
-    </property>
-
-    <!-- Iceberg Catalog -->
-    <property>
-        <name>iceberg.catalog</name>
-        <value>hive</value>
-    </property>
-    <property>
-        <name>iceberg.catalog.hive.type</name>
-        <value>hive</value>
-    </property>
-    <property>
-        <name>iceberg.catalog.hive.client-pool-cache-keys</name>
-        <value>ugi</value>
-    </property>
-    <property>
-        <name>iceberg.catalog.hive.uri</name>
-        <value>thrift://hive-metastore:9083</value>
-    </property>
-    <property>
-        <name>iceberg.catalog.hive.warehouse</name>
-        <value>s3a://lakehouse/warehouse/</value>
     </property>
 
     <!-- Hive compatibility -->

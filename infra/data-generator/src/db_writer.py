@@ -27,12 +27,12 @@ class DataWriter:
         self.schema = schema
         self.batch_size = batch_size
         self.echo = echo
-        self._user = user
-        self._password = password
-        self._host = host
-        self._db_name = db_name
+        self.user = user
+        self.password = password
+        self.host = host
+        self.db_name = db_name
         self.conn: Optional[Connection] = None
-        self._connect()
+        self.connect()
 
     def select(
         self,
@@ -43,7 +43,7 @@ class DataWriter:
         order_by: Optional[str] = None,
         limit: Optional[int] = None,
     ):
-        self._ensure_connection()
+        self.ensure_connection()
 
         cols = ", ".join(columns) if columns else "*"
         sql = f"SELECT {cols} FROM {self.schema}.{table}"
@@ -69,7 +69,7 @@ class DataWriter:
             logging.info(f"[{table}] No rows to insert.")
             return
 
-        rows = self._normalize_rows(data)
+        rows = self.normalize_rows(data)
         columns = list(rows[0].keys())
 
         if update_fields is None:
@@ -85,7 +85,7 @@ class DataWriter:
             ON CONFLICT ({conflict_clause}) DO UPDATE SET
             {update_clause}
         """
-        self._ensure_connection()
+        self.ensure_connection()
 
         try:
             for i in range(0, len(rows), self.batch_size):
@@ -105,11 +105,11 @@ class DataWriter:
             raise
 
     def get_all_tables(self):
-        return [table for table, _ in self._ddl_stmts().items()]
+        return [table for table, _ in self.ddlStmts().items()]
 
     def create_tables_if_not_exists(self):
-        for table, ddl in self._ddl_stmts().items():
-            self._ensure_connection()
+        for table, ddl in self.ddlStmts().items():
+            self.ensure_connection()
             logging.info(f"Creating table {self.schema}.{table}")
             self.conn.execute(text(ddl))
 
@@ -117,7 +117,7 @@ class DataWriter:
         if self.conn:
             self.conn.close()
 
-    def _ddl_stmts(self):
+    def ddlStmts(self):
         return {
             "users": User.ddl(self.schema),
             "orders": Order.ddl(self.schema),
@@ -126,24 +126,24 @@ class DataWriter:
             **get_additional_ddls(self.schema),
         }
 
-    def _connect(self):
+    def connect(self):
         engine = create_engine(
-            f"postgresql+psycopg2://{self._user}:{self._password}@{self._host}/{self._db_name}",
+            f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}/{self.db_name}",
             echo=self.echo,
         )
         self.conn = engine.connect()
 
-    def _ensure_connection(self):
+    def ensure_connection(self):
         try:
             if self.conn.closed:
                 logging.warning("Reconnecting because connection is closed.")
-                self._connect()
+                self.connect()
         except OperationalError:
             logging.warning("Reconnecting because connection is broken.")
-            self._connect()
+            self.connect()
 
     @staticmethod
-    def _normalize_rows(data: List[Union[dict, object]]) -> List[dict]:
+    def normalize_rows(data: List[Union[dict, object]]) -> List[dict]:
         if not data:
             return []
         if dataclasses.is_dataclass(data[0]):

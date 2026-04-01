@@ -1,6 +1,5 @@
-apache-airflow-providers-trino==6.3.3
-apache-airflow-providers-docker==4.4.2
-astronomer-cosmos==1.10.3
-dbt-core==1.8.5
-dbt-trino==1.8.5
-python-dotenv==1.1.1
+apache-airflow==2.9.2
+apache-airflow-providers-trino
+apache-airflow-providers-docker
+astronomer-cosmos
+python-dotenv

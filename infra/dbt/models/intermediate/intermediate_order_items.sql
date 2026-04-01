@@ -21,11 +21,11 @@ SELECT
     oi.quantity,
     oi.sale_price,
     oi.quantity * oi.sale_price         AS revenue,
-    CAST(oi.created_at AS varchar)        AS item_created_at,
-    CAST(oi.shipped_at AS varchar)        AS item_shipped_at,
-    CAST(oi.delivered_at AS varchar)      AS item_delivered_at,
-    CAST(oi.returned_at AS varchar)       AS item_returned_at,
-    CAST(oi.cancelled_at AS varchar)      AS item_cancelled_at,
+    oi.created_at                        AS item_created_at,
+    oi.shipped_at                        AS item_shipped_at,
+    oi.delivered_at                      AS item_delivered_at,
+    oi.returned_at                       AS item_returned_at,
+    oi.cancelled_at                      AS item_cancelled_at,
     -- Product
     oi.product_id,
     p.name                              AS product_name,
@@ -49,10 +49,10 @@ SELECT
     u.city                              AS customer_city,
     u.latitude                          AS customer_lat,
     u.longitude                         AS customer_lon,
-    CAST(u.created_at AS varchar)       AS user_registered_at,
+    u.created_at                        AS user_registered_at,
     u.traffic_source,
     -- Metadata
-    oi.event_ts_ms
+    oi.kafka_ts
 
 FROM {{ ref('staging_order_items') }} oi
 LEFT JOIN {{ ref('staging_orders') }}       o   ON oi.order_id               = o.id
@@ -62,5 +62,5 @@ LEFT JOIN {{ ref('staging_users') }}        u   ON o.user_id                 = u
 
 WHERE oi.order_id IS NOT NULL
 {% if is_incremental() %}
-    AND oi.event_ts_ms > (SELECT MAX(event_ts_ms) FROM {{ this }})
+    AND oi.kafka_ts > (SELECT MAX(kafka_ts) FROM {{ this }})
 {% endif %}

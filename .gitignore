@@ -29,6 +29,7 @@ dbt/.user.yml
 dbt/target/
 dbt/logs/
 dbt/dbt_packages/
+CLAUDE.md
 
 # Logs
 *.log
@@ -38,3 +39,4 @@ logs/
 .DS_Store
 .AppleDouble
 .LSOverride
+.jupyter_ystore.db

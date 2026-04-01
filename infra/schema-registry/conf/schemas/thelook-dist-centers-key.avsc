@@ -1,8 +1,0 @@
-{
-  "type": "record",
-  "name": "thelook_dist_centers_key",
-  "namespace": "io.thelook.cdc",
-  "fields": [
-    {"name": "id", "type": "long"}
-  ]
-}

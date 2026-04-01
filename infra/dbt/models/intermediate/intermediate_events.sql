@@ -28,14 +28,14 @@ SELECT
     u.country                           AS customer_country,
     u.latitude                          AS customer_lat,
     u.longitude                         AS customer_lon,
-    CAST(u.created_at AS varchar)       AS user_registered_at,
+    u.created_at                        AS user_registered_at,
     u.traffic_source                    AS user_traffic_source,
     CASE WHEN e.user_id IS NULL THEN TRUE ELSE FALSE END AS is_ghost,
     -- Metadata
-    e.event_ts_ms
+    e.kafka_ts
 
 FROM {{ ref('staging_events') }} e
 LEFT JOIN {{ ref('staging_users') }} u ON e.user_id = u.id
 {% if is_incremental() %}
-WHERE e.event_ts_ms > (SELECT MAX(event_ts_ms) FROM {{ this }})
+WHERE e.kafka_ts > (SELECT MAX(kafka_ts) FROM {{ this }})
 {% endif %}

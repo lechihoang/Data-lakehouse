@@ -1,9 +1,10 @@
--- Latest state of each user (deduplicate CDC updates, e.g. address changes)
+{{ config(materialized='ephemeral') }}
+
+-- Latest state of each user (deduplicate CDC via kafka_ts watermark)
 SELECT *
 FROM (
     SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY id ORDER BY event_ts_ms DESC) AS rn
+        ROW_NUMBER() OVER (PARTITION BY id ORDER BY kafka_ts DESC) AS rn
     FROM {{ source('staging', 'users') }}
-    WHERE operation != 'd'
 )
 WHERE rn = 1

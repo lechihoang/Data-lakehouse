@@ -25,13 +25,13 @@ SELECT
     u.city                              AS customer_city,
     u.latitude                          AS customer_lat,
     u.longitude                         AS customer_lon,
-    CAST(u.created_at AS varchar)       AS user_registered_at,
+    u.created_at                        AS user_registered_at,
     u.traffic_source,
     -- Metadata
-    o.event_ts_ms
+    o.kafka_ts
 
 FROM {{ ref('staging_orders') }} o
 LEFT JOIN {{ ref('staging_users') }} u ON o.user_id = u.id
 {% if is_incremental() %}
-WHERE o.event_ts_ms > (SELECT MAX(event_ts_ms) FROM {{ this }})
+WHERE o.kafka_ts > (SELECT MAX(kafka_ts) FROM {{ this }})
 {% endif %}

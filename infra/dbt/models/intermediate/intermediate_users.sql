@@ -24,10 +24,10 @@ SELECT
     u.traffic_source,
     u.created_at                    AS registered_at,
     u.updated_at,
-    u.event_ts_ms
+    u.kafka_ts
 
 FROM {{ ref('staging_users') }} u
 
 {% if is_incremental() %}
-WHERE u.event_ts_ms > (SELECT MAX(event_ts_ms) FROM {{ this }})
+WHERE u.kafka_ts > (SELECT MAX(kafka_ts) FROM {{ this }})
 {% endif %}

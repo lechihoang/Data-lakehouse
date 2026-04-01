@@ -1,5 +1,4 @@
-version: "3.9"
-
+name: thelook
 x-airflow-common: &airflow-common
   build:
     context: ./infra/airflow
@@ -9,6 +8,11 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__LOAD_EXAMPLES: "False"
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow123@airflow-db:5432/airflow
     AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_API_SECRET_KEY:-changeme}
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+    AIRFLOW__WEBSERVER__SESSION_BACKEND: securecookie
+    AIRFLOW__WEBSERVER__SESSION_COOKIE_SECURE: "False"
+    AIRFLOW__WEBSERVER__SESSION_COOKIE_SAMESITE: "Lax"
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
     MINIO_ROOT_USER: ${MINIO_ROOT_USER}
     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -26,6 +30,8 @@ x-airflow-common: &airflow-common
   depends_on:
     airflow-db:
       condition: service_healthy
+  networks:
+    - data_network
 
 services:
   # ─── PostgreSQL (CDC source) ─────────────────────────────
@@ -89,7 +95,6 @@ services:
       /bin/sh -c "
         mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
         mc mb --ignore-existing myminio/${MINIO_BUCKET};
-        mc mb --ignore-existing myminio/iceberg;
         echo 'Buckets created.';
       "
     networks:
@@ -198,6 +203,8 @@ services:
       CONFIG_STORAGE_TOPIC: _debezium-config
       OFFSET_STORAGE_TOPIC: _debezium-offset
       STATUS_STORAGE_TOPIC: _debezium-status
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
       - data_network
     profiles: [core]
@@ -294,15 +301,14 @@ services:
     container_name: thelook-superset
     environment:
       SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
-      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME}
-      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL}
-      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
+      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME:-admin}
+      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL:-admin@thelook.com}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-admin123}
     ports:
       - "8089:8088"
-    volumes:
-      - ./infra/superset/conf/superset_config.py:/app/pythonpath/superset_config.py:ro
     networks:
       - data_network
+    restart: unless-stopped
     profiles: [core]
 
   # ─── JupyterLab ───────────────────────────────────────────
@@ -314,14 +320,15 @@ services:
       - "8888:8888"
     volumes:
       - ./workspace:/home/jovyan/work
+      - ./infra/schema-registry/schemas:/schemas:ro
     environment:
       - JUPYTER_ENABLE_LAB=yes
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
       - SPARK_MASTER_URL=spark://spark-master:7077
       - TRINO_URL=http://trino:8080
+      - SCHEMA_DIR=/schemas
     networks:
       - data_network
     profiles: [explore]
@@ -332,16 +339,23 @@ services:
       context: ./infra/data-generator
     container_name: thelook-generator
     environment:
-      PG_DSN: host=postgres port=5432 dbname=${POSTGRES_DB} user=${POSTGRES_USER} password=${POSTGRES_PASSWORD}
       KAFKA_BOOTSTRAP: kafka:9092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
+    command: >
+      python -u -m src.generator
+      --db-host postgres
+      --db-user ${POSTGRES_USER}
+      --db-password ${POSTGRES_PASSWORD}
+      --db-name ${POSTGRES_DB}
+      --db-schema public
+      --db-batch-size 1000
+      --init-num-users 1000
+      --avg-qps 20
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      schema-registry:
-        condition: service_started
     restart: unless-stopped
     networks:
       - data_network
@@ -372,17 +386,26 @@ services:
   airflow-init:
     <<: *airflow-common
     container_name: thelook-airflow-init
+    user: "0:0"
     entrypoint:
       - bash
       - -c
       - |
-        airflow db migrate
+        if [[ -z "${AIRFLOW_UID}" ]]; then
+          export AIRFLOW_UID=$(id -u)
+        fi
+        mkdir -p /opt/airflow/{logs,dags}
+        chown -R "${AIRFLOW_UID}:0" /opt/airflow/
+        airflow db upgrade
+        airflow fab-db migrate
         airflow users create \
-          --username "$${AIRFLOW_ADMIN_USER}" \
-          --password "$${AIRFLOW_ADMIN_PASSWORD}" \
-          --firstname Admin --lastname User --role Admin \
-          --email "$${AIRFLOW_ADMIN_EMAIL}" 2>/dev/null || true
-        dbt deps --project-dir /opt/airflow/dbt --profiles-dir /opt/airflow/dbt || true
+          --username ${AIRFLOW_ADMIN_USERNAME} \
+          --password ${AIRFLOW_ADMIN_PASSWORD} \
+          --firstname ${AIRFLOW_ADMIN_FIRSTNAME} \
+          --lastname ${AIRFLOW_ADMIN_LASTNAME} \
+          --role Admin \
+          --email ${AIRFLOW_ADMIN_EMAIL} || true
+        command -v dbt >/dev/null 2>&1 && dbt deps --project-dir /opt/airflow/dbt --profiles-dir /opt/airflow/dbt || true
     depends_on:
       airflow-db:
         condition: service_healthy
@@ -408,7 +431,7 @@ services:
     ports:
       - "8085:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready || curl -f http://localhost:8080/"]
       interval: 30s
       timeout: 10s
       retries: 5

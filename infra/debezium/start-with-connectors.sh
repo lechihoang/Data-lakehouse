@@ -26,8 +26,8 @@ if ! $available; then
 else
   if [ -d "${CONFIG_DIR}" ] && compgen -G "${CONFIG_DIR}"'/*.json' >/dev/null 2>&1; then
     for config_path in "${CONFIG_DIR}"/*.json; do
-      [ -f "${config_path}" ] || continue
-      connector_name="$(basename "${config_path}" .json)"
+      [ -f "$config_path" ] || continue
+      connector_name="$(basename "$config_path" .json)"
       echo "Applying connector config: ${connector_name}"
       http_code=$(curl -sS -o /tmp/connector-response -w "%{http_code}" \
         -X PUT "http://${CONNECT_HOST}:${CONNECT_PORT}/connectors/${connector_name}/config" \

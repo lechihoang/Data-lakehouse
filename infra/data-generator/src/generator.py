@@ -83,7 +83,7 @@ class TheLookECommSimulator:
             )
             return False
 
-    async def _simulate_purchases(self):
+    async def simulate_purchases(self):
         """Generates and writes a new purchase transaction, the primary simulation event."""
         # Select a random user
         user_list = await asyncio.to_thread(
@@ -150,7 +150,7 @@ class TheLookECommSimulator:
             ),
         )
 
-    def _simulate_order_update(self):
+    def simulate_order_update(self):
         """Synchronous helper containing the logic for updating an order. To be run in a thread."""
         random_order_list = self.writer.select(
             table="orders", order_by="RANDOM()", limit=1
@@ -208,7 +208,7 @@ class TheLookECommSimulator:
         if random_events:
             self.writer.upsert(table="events", data=random_events, conflict_keys=["id"])
 
-    async def _simulate_side_tasks(self):
+    async def simulate_side_tasks(self):
         """Runs secondary simulation events based on their respective probabilities."""
         side_tasks = []
 
@@ -257,7 +257,7 @@ class TheLookECommSimulator:
             and random.random() < self.args.order_update_prob
         ):
             logging.info("Update an order status...")
-            side_tasks.append(asyncio.to_thread(self._simulate_order_update))
+            side_tasks.append(asyncio.to_thread(self.simulate_order_update))
 
         if side_tasks:
             await asyncio.gather(*side_tasks)
@@ -276,8 +276,8 @@ class TheLookECommSimulator:
                 wait_time = random.expovariate(self.args.avg_qps)
                 await asyncio.sleep(wait_time)
 
-                await self._simulate_purchases()
-                await self._simulate_side_tasks()
+                await self.simulate_purchases()
+                await self.simulate_side_tasks()
             except SQLAlchemyError as e:
                 self.consecutive_db_errors += 1
                 logging.warning(

@@ -1,22 +1,23 @@
 include .env
 export
 
-DBT_IMAGE := thelook-dbt:latest
-
-.PHONY: help build-dbt up down ps
+.PHONY: help build build-dbt build-jupyter up down ps
 
 help:
 	@echo "Usage: make <target>"
 	@echo ""
-	@echo "  up-core       Start core services (postgres, minio, kafka, spark, trino, etc.)"
-	@echo "  up-explore   Start JupyterLab for exploration"
-	@echo "  up-datagen   Start data generator"
-	@echo "  up-airflow   Start Airflow + dbt"
-	@echo "  up-all       Start everything"
-	@echo "  down         Stop all containers"
-	@echo "  ps            Show running containers"
+	@echo "  up-core       Start core services (postgres, minio, kafka, spark, trino, hms)"
+	@echo "  up-explore    Start JupyterLab for exploration"
+	@echo "  up-datagen    Start data generator"
+	@echo "  up-airflow    Start Airflow + dbt"
+	@echo "  up-jupyter   Start core + JupyterLab"
+	@echo "  up-all        Start everything (core + datagen + explore + airflow)"
+	@echo "  down          Stop all containers"
+	@echo "  ps             Show running containers"
 	@echo ""
-	@echo "  build-dbt     Build the dbt Docker image"
+	@echo "  build         Build all Docker images"
+	@echo "  build-dbt     Build dbt Docker image"
+	@echo "  build-jupyter Build JupyterLab image only"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make up-core          # Core services only"
@@ -25,8 +26,8 @@ help:
 	@echo "  docker compose --profile core --profile datagen --profile explore --profile airflow up -d"
 
 # ─── Build ────────────────────────────────────────────────────
-build-dbt:
-	docker build -t $(DBT_IMAGE) ./infra/dbt
+build:
+	docker compose --profile core --profile datagen --profile explore --profile airflow build
 
 # ─── Up ─────────────────────────────────────────────────────
 up-core:
@@ -42,7 +43,14 @@ up-airflow:
 	docker compose --profile airflow up -d
 
 up-all:
-	docker compose --profile core --profile datagen up -d
+	docker compose --profile core --profile datagen --profile explore --profile airflow up -d
+
+up-jupyter:
+	docker compose --profile core --profile explore build
+	docker compose --profile core --profile explore up -d
+
+build-jupyter:
+	docker compose --profile explore build
 
 up:
 	docker compose --profile core up -d

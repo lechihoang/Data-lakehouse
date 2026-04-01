@@ -152,7 +152,7 @@ make up-core           # Core services (Postgres, Kafka, Spark, MinIO, Trino, HM
 make up-datagen        # + data generator
 make up-airflow        # + Airflow + dbt
 make up-explore        # + JupyterLab
-make up-all            # Everything (core + datagen)
+make up-all            # Everything (core + datagen + explore + airflow)
 make down              # Stop all
 make ps                # Show running containers
 ```

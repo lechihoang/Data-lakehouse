@@ -1,43 +1,19 @@
-FROM apache/airflow:3.0.6-python3.12
-COPY requirements.txt .
-
-ARG AIRFLOW_VERSION=3.0.6
-ARG PYTHON_VERSION=3.12
-ARG AIRFLOW_CONSTRAINTS_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
-
-RUN pip install --no-cache-dir \
-    --no-deps \
-    -r requirements.txt && \
-    pip install --no-cache-dir \
-    apache-airflow-providers-fab \
-    apache-airflow-providers-apache-spark \
-    trino[sqlalchemy]
+FROM apache/airflow:2.9.2-python3.11
 
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    openjdk-17-jre-headless curl tar && \
+    openjdk-17-jre-headless curl tar git && \
     rm -rf /var/lib/apt/lists/*
 
-ARG SPARK_VERSION=3.5.0
-RUN set -eux; \
-    curl -fSL --connect-timeout 20 --max-time 900 --retry 5 --retry-connrefused \
-    -o /tmp/spark.tgz "https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz"; \
-    tar -xzf /tmp/spark.tgz -C /opt; \
-    mv "/opt/spark-${SPARK_VERSION}-bin-hadoop3" /opt/spark; \
-    rm /tmp/spark.tgz
-RUN set -eux; \
-    mkdir -p /opt/spark/jars; \
-    curl -fSL -o /opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.0.jar "https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/3.5.0/spark-sql-kafka-0-10_2.12-3.5.0.jar"; \
-    curl -fSL -o /opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.5.0.jar "https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/3.5.0/spark-token-provider-kafka-0-10_2.12-3.5.0.jar"; \
-    curl -fSL -o /opt/spark/jars/kafka-clients-3.5.0.jar "https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/3.5.0/kafka-clients-3.5.0.jar"; \
-    curl -fSL -o /opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.9.2.jar "https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.5_2.12/1.9.2/iceberg-spark-runtime-3.5_2.12-1.9.2.jar"; \
-    curl -fSL -o /opt/spark/jars/iceberg-aws-bundle-1.9.2.jar "https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws-bundle/1.9.2/iceberg-aws-bundle-1.9.2.jar"; \
-    curl -fSL -o /opt/spark/jars/hadoop-aws-3.3.4.jar "https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar"; \
-    curl -fSL -o /opt/spark/jars/aws-java-sdk-bundle-1.12.791.jar "https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.791/aws-java-sdk-bundle-1.12.791.jar"; \
-    curl -fSL -o /opt/spark/jars/commons-pool2-2.12.0.jar "https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.12.0/commons-pool2-2.12.0.jar";
-ENV SPARK_HOME=/opt/spark
-ENV PATH="$SPARK_HOME/bin:$PATH"
-ENV SPARK_JARS_DIR=/opt/spark/jars
-ENV PYTHONPATH="/opt/spark/jobs:${PYTHONPATH}"
-
 USER airflow
+
+# Airflow providers
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# dbt in separate venv (isolated to avoid Airflow dep conflicts)
+USER root
+RUN python -m venv /opt/dbt_venv && \
+    chown -R airflow:0 /opt/dbt_venv
+USER airflow
+RUN /opt/dbt_venv/bin/pip install --no-cache-dir dbt-core==1.8.5 dbt-trino==1.8.5

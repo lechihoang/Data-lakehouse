@@ -10,23 +10,23 @@ SELECT
     -- Keys
     o.order_id,
     o.user_id,
-    CAST(date_format(date_trunc('day', from_unixtime(o.event_ts_ms / 1000)), '%Y%m%d') AS INTEGER) AS date_key,
+    CAST(date_format(date_trunc('day', o.kafka_ts), '%Y%m%d') AS INTEGER) AS date_key,
     -- Attributes
     o.order_status,
     o.num_of_items,
     o.traffic_source,
-    -- Dates and timestamps (converted from epoch ms)
-    TRY(date(from_unixtime(CAST(o.created_at   AS BIGINT) / 1000))) AS order_date,
-    TRY(from_unixtime(CAST(o.created_at        AS BIGINT) / 1000))  AS order_created_at,
-    TRY(from_unixtime(CAST(o.shipped_at        AS BIGINT) / 1000))  AS shipped_at,
-    TRY(from_unixtime(CAST(o.delivered_at      AS BIGINT) / 1000))  AS delivered_at,
-    TRY(from_unixtime(CAST(o.returned_at       AS BIGINT) / 1000))  AS returned_at,
-    TRY(from_unixtime(CAST(o.cancelled_at      AS BIGINT) / 1000))  AS cancelled_at,
+    -- Dates and timestamps (Avro stores as ISO string)
+    TRY(CAST(o.created_at AS TIMESTAMP))                             AS order_date,
+    TRY(CAST(o.created_at AS TIMESTAMP))                            AS order_created_at,
+    TRY(CAST(o.shipped_at AS TIMESTAMP))                            AS shipped_at,
+    TRY(CAST(o.delivered_at AS TIMESTAMP))                          AS delivered_at,
+    TRY(CAST(o.returned_at AS TIMESTAMP))                           AS returned_at,
+    TRY(CAST(o.cancelled_at AS TIMESTAMP))                         AS cancelled_at,
     -- Metadata
-    o.event_ts_ms
+    o.kafka_ts
 
 FROM {{ ref('intermediate_orders') }} o
 
 {% if is_incremental() %}
-WHERE o.event_ts_ms > (SELECT MAX(event_ts_ms) FROM {{ this }})
+WHERE o.kafka_ts > (SELECT MAX(kafka_ts) FROM {{ this }})
 {% endif %}

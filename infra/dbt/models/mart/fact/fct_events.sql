@@ -11,7 +11,7 @@ SELECT
     e.event_id,
     e.user_id,
     e.session_id,
-    CAST(date_format(date_trunc('day', from_unixtime(e.event_ts_ms / 1000)), '%Y%m%d') AS INTEGER) AS date_key,
+    CAST(date_format(date_trunc('day', e.kafka_ts), '%Y%m%d') AS INTEGER) AS date_key,
     -- Attributes
     e.sequence_number,
     e.event_type,
@@ -26,12 +26,12 @@ SELECT
     -- Flags
     e.is_ghost,
     -- Timestamps
-    date(from_unixtime(e.event_ts_ms / 1000))        AS event_date,
-    from_unixtime(e.event_ts_ms / 1000)              AS event_time,
-    e.event_ts_ms
+    date(e.kafka_ts)        AS event_date,
+    e.kafka_ts              AS event_time,
+    e.kafka_ts
 
 FROM {{ ref('intermediate_events') }} e
 
 {% if is_incremental() %}
-WHERE e.event_ts_ms > (SELECT MAX(event_ts_ms) FROM {{ this }})
+WHERE e.kafka_ts > (SELECT MAX(kafka_ts) FROM {{ this }})
 {% endif %}

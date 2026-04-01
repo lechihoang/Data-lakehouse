@@ -1,8 +1,0 @@
-{
-  "type": "record",
-  "name": "thelook_order_items_key",
-  "namespace": "io.thelook.cdc",
-  "fields": [
-    {"name": "id", "type": "string"}
-  ]
-}
