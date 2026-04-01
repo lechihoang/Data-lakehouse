@@ -37,7 +37,7 @@ A streaming data lakehouse built on the **TheLook E-commerce** dataset, followin
 
 TheLook E-commerce is a self-contained data lakehouse that simulates a modern e-commerce platform's data infrastructure. The system ingests real-time transaction data (orders, items, users, events, products) from a PostgreSQL source via Debezium CDC into Kafka, then processes and serves it across three analytical layers following the Medallion Architecture:
 
-- **Bronze (staging):** Raw CDC events captured verbatim from Kafka — contains Debezium envelope (`operation`, `before`/`after` payloads, `event_ts_ms`).
+- **Bronze (staging):** Raw CDC events from Kafka — flat JSON records with typed columns, no Debezium envelope (`operation`, `before`/`after`) in the wire format.
 - **Silver (intermediate):** Deduplicated, cleaned, and type-corrected data — one record per entity key.
 - **Gold (mart):** Business-ready dimension and fact tables — customer segments, order metrics, product performance, session funnels.
 
@@ -81,23 +81,18 @@ The platform is designed to answer:
 
 ## 3. Architecture
 
-![Architecture Diagram](./assets/architecture.png)
+![Architecture Diagram](./static/architechture.png)
 
-Data flows through the platform as follows:
-
-1. **Source (OLTP):** TheLook data generator continuously writes synthetic e-commerce events into PostgreSQL.
-2. **CDC Ingestion:** Debezium captures row-level changes from PostgreSQL WAL (pgoutput plugin) and publishes them to Kafka topics as JSON (via `ExtractChangedRecord` SMT unwrapping the CDC envelope).
-3. **Bronze Layer (staging):** Spark Structured Streaming consumes Kafka topics and writes raw CDC records to Delta Lake on MinIO — one partition per topic.
-4. **Silver Layer (intermediate):** Spark deduplicates records per entity key, cleans data types, and applies business rules. dbt handles incremental logic with watermark-based filtering.
-5. **Gold Layer (mart):** dbt models aggregate data into dimension and fact tables (dim_customers, dim_products, dim_date, fct_orders, etc.) stored as Delta tables.
-6. **Serving:** Trino queries Delta Lake tables via Hive Metastore for ad-hoc SQL. Superset connects to Trino for visualization.
-7. **Orchestration:** Airflow DAGs schedule and monitor the full pipeline lifecycle.
+Data flow:
+1. **Generator** writes e-commerce events (orders, users, products, events) into PostgreSQL.
+2. **Debezium** captures CDC from PostgreSQL WAL (pgoutput plugin) and publishes JSON to Kafka topics (`thelook.public.*`).
+3. **Spark Structured Streaming** consumes Kafka, parses JSON via `from_json()`, writes to Delta Bronze (staging).
+4. **Airflow + dbt** automates: `staging` (ephemeral dedup) -> `intermediate` (incremental merge) -> `mart` (dim + fact tables). Results written back to Delta Lake.
+5. **Trino** wraps all 3 layers — queries staging for raw CDC, intermediate for enriched data, mart for business metrics. **Superset** renders dashboards.
 
 ---
 
 ## 4. Data Modeling
-
-![Data Model](./assets/data_model.png)
 
 The analytical schema follows a **star schema** pattern optimized for BI queries:
 
@@ -229,9 +224,7 @@ docker compose exec dbt dbt run --project-dir /dbt --profiles-dir /dbt
 
 ## 10. Dashboards
 
-![Executive Dashboard](./assets/dashboard/executive.png)
-![Product Analytics](./assets/dashboard/products.png)
-![Customer Insights](./assets/dashboard/customers.png)
+> Screenshots available in `assets/dashboard/` directory.
 
 ---
 

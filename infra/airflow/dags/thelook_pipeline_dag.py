@@ -4,7 +4,7 @@ TheLook Lakehouse — Daily Transformation Pipeline
 Astronomer Cosmos renders each dbt model as an individual Airflow task.
 Execution: LOCAL mode — dbt runs directly inside the Airflow container.
 
-DAG graph: start >> staging >> intermediate >> mart
+DAG graph: start >> dbt_deps >> staging >> intermediate >> mart >> end
 """
 
 from pathlib import Path
@@ -12,6 +12,7 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.bash import BashOperator
 
 from cosmos import (
     DbtTaskGroup,
@@ -52,6 +53,13 @@ with DAG(
     tags=["thelook", "dbt", "lakehouse"],
 ) as dag:
     start = EmptyOperator(task_id="start")
+    end = EmptyOperator(task_id="end")
+
+    # Install dbt packages (dbt_utils) before running models
+    dbt_deps = BashOperator(
+        task_id="dbt_deps",
+        bash_command="cd /opt/airflow/dbt && /opt/dbt_venv/bin/dbt deps",
+    )
 
     staging = DbtTaskGroup(
         group_id="staging",
@@ -89,4 +97,4 @@ with DAG(
         ),
     )
 
-    start >> staging >> intermediate >> mart
+    start >> dbt_deps >> staging >> intermediate >> mart >> end
