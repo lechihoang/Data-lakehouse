@@ -184,25 +184,26 @@ docker compose exec dbt dbt run --project-dir /dbt --profiles-dir /dbt
 
 ```
 .
-├── assets/                    # Architecture diagrams, dashboard screenshots
-├── data-generator/            # Synthetic TheLook data generator
+├── static/                    # Static assets (architecture diagram, etc.)
+├── workspace/                  # Jupyter notebooks (Spark streaming, exploration)
+├── data-generator/             # Synthetic TheLook e-commerce data generator
 ├── infra/
 │   ├── airflow/              # Airflow configuration and DAGs
-│   ├── spark/                # Spark cluster (master + worker)
+│   ├── spark/                # Spark cluster (master + worker) + config
 │   ├── hive-metastore/       # Hive Metastore + MariaDB backend
-│   ├── kafka/                # Kafka broker and KRaft configuration
-│   ├── debezium/             # Debezium CDC connector config
-│   ├── trino/                # Trino query engine
-│   ├── superset/             # Apache Superset BI
-│   ├── jupyter-lab/          # JupyterLab for exploration
-│   └── dbt/                  # dbt project (models, tests, macros)
+│   ├── kafka/                # Kafka KRaft broker configuration
+│   ├── debezium/             # Debezium CDC connector configs
+│   ├── trino/                # Trino query engine config
+│   ├── superset/             # Apache Superset BI config
+│   ├── jupyter-lab/          # JupyterLab + Hive 4.1 client + schemas
+│   └── dbt/                  # dbt project (models, tests, macros, profiles)
 │       └── models/
-│           ├── staging/      # Bronze layer — raw CDC passthrough
-│           ├── intermediate/ # Silver layer — deduplication & cleaning
-│           └── mart/         # Gold layer — business dimensions & facts
-├── docker-compose.yaml        # Service orchestration
-├── Makefile                   # Convenience commands
-└── .env                      # Environment variables
+│           ├── staging/      # Bronze — raw CDC passthrough (ephemeral)
+│           ├── intermediate/ # Silver — deduplication & cleaning (incremental)
+│           └── mart/         # Gold — dimensions & facts (table)
+├── docker-compose.yaml         # Service orchestration
+├── Makefile                    # Convenience commands
+└── .env                       # Environment variables
 ```
 
 ---
@@ -224,7 +225,7 @@ docker compose exec dbt dbt run --project-dir /dbt --profiles-dir /dbt
 
 ## 10. Dashboards
 
-> Screenshots available in `assets/dashboard/` directory.
+> Screenshots available in `static/` directory.
 
 ---
 
