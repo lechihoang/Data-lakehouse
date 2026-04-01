@@ -86,7 +86,7 @@ The platform is designed to answer:
 Data flows through the platform as follows:
 
 1. **Source (OLTP):** TheLook data generator continuously writes synthetic e-commerce events into PostgreSQL.
-2. **CDC Ingestion:** Debezium captures row-level changes from PostgreSQL WAL (pgoutput plugin) and publishes them to Kafka topics in Avro format (Schema Registry enforced).
+2. **CDC Ingestion:** Debezium captures row-level changes from PostgreSQL WAL (pgoutput plugin) and publishes them to Kafka topics as JSON (via `ExtractChangedRecord` SMT unwrapping the CDC envelope).
 3. **Bronze Layer (staging):** Spark Structured Streaming consumes Kafka topics and writes raw CDC records to Delta Lake on MinIO — one partition per topic.
 4. **Silver Layer (intermediate):** Spark deduplicates records per entity key, cleans data types, and applies business rules. dbt handles incremental logic with watermark-based filtering.
 5. **Gold Layer (mart):** dbt models aggregate data into dimension and fact tables (dim_customers, dim_products, dim_date, fct_orders, etc.) stored as Delta tables.
@@ -115,10 +115,10 @@ Key modeling decisions:
 ## 5. Key Features
 
 - **Real-time CDC Pipeline**
-  Debezium captures every row-level change from PostgreSQL WAL using the `pgoutput` plugin. Each event carries the full `before`/`after` state, the operation type (`c`/`u`/`d`/`r`), and the event timestamp in epoch milliseconds. Schema Registry enforces Avro schemas on all Kafka topics, ensuring schema evolution is tracked and validated.
+  Debezium captures every row-level change from PostgreSQL WAL using the `pgoutput` plugin. The `ExtractChangedRecord` SMT unwraps the Debezium CDC envelope, producing flat JSON records on the wire with fields: `op`, `ts_ms`, `after` (the changed row). Each Kafka topic (`thelook.public.*`) contains JSON records.
 
 - **Spark Structured Streaming**
-  Spark 3.5 reads from Kafka using the `kafka` source, deserializes Avro via Schema Registry, and writes micro-batches to Delta Lake on MinIO every trigger interval. Checkpointing ensures exactly-once semantics across restarts.
+  Spark 3.5 reads from Kafka using the `kafka` source, parses JSON using `from_json()` with locally-defined StructTypes (schemas from `.avsc` files as reference), and writes micro-batches to Delta Lake on MinIO every trigger interval. Checkpointing ensures exactly-once semantics across restarts.
 
 - **Delta Lake on MinIO**
   All layers (staging, intermediate, mart) use Delta Lake format, providing ACID transactions, schema enforcement, and time-travel capabilities on S3-compatible object storage.
@@ -143,7 +143,7 @@ Key modeling decisions:
 
 - **Docker & Docker Compose v2**
 - **RAM:** 8GB minimum (16GB+ recommended)
-- **Ports:** 5432, 9092, 29092, 8081, 8083, 8085, 8088, 8089, 8090, 9000, 9001, 9083, 9084, 9085
+- **Ports:** 5432, 9092, 8083, 8085, 8088, 8089, 8090, 8091, 9000, 9001, 9083
 
 ### Start Services
 
@@ -174,7 +174,6 @@ docker compose exec dbt dbt run --project-dir /dbt --profiles-dir /dbt
 | Source DB | PostgreSQL | 15 | Core OLTP database with WAL enabled for CDC |
 | CDC | Debezium | 3.0 | Capture row-level changes from PostgreSQL WAL |
 | Message Broker | Apache Kafka | 3.9 (KRaft) | Decouple ingestion from downstream processing |
-| Schema Registry | Confluent Schema Registry | 8.0 | Avro schema enforcement on Kafka topics |
 | Stream Processing | Apache Spark | 3.5.6 | Structured Streaming from Kafka to Delta Lake |
 | Table Format | Delta Lake | 3.0 | ACID storage, schema enforcement, time travel |
 | Object Storage | MinIO | latest | S3-compatible data lake storage |
@@ -198,7 +197,6 @@ docker compose exec dbt dbt run --project-dir /dbt --profiles-dir /dbt
 │   ├── hive-metastore/       # Hive Metastore + MariaDB backend
 │   ├── kafka/                # Kafka broker and KRaft configuration
 │   ├── debezium/             # Debezium CDC connector config
-│   ├── schema-registry/      # Confluent Schema Registry
 │   ├── trino/                # Trino query engine
 │   ├── superset/             # Apache Superset BI
 │   ├── jupyter-lab/          # JupyterLab for exploration
@@ -223,7 +221,6 @@ docker compose exec dbt dbt run --project-dir /dbt --profiles-dir /dbt
 | MinIO Console | http://localhost:9001 | minio / minio123 |
 | Trino UI | http://localhost:8080 | — |
 | Apache Superset | http://localhost:8089 | admin / admin123 |
-| Schema Registry | http://localhost:8081 | — |
 | Debezium REST API | http://localhost:8083 | — |
 | Apache Airflow | http://localhost:8085 | admin / admin123 |
 | Kafka | localhost:9092 | — |

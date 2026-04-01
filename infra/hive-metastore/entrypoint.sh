@@ -8,7 +8,11 @@ SKIP_SCHEMA_INIT="${IS_RESUME:-false}"
 [[ $VERBOSE = "true" ]] && VERBOSE_MODE="--verbose" || VERBOSE_MODE=""
 
 function initialize_hive {
-  COMMAND="-initSchema"
+  COMMAND="-initOrUpgradeSchema"
+  if [ "$(echo "$HIVE_VER" | cut -d '.' -f1)" -lt "4" ]; then
+     COMMAND="-${SCHEMA_COMMAND:-initSchema}"
+  fi
+  export HADOOP_CLASSPATH="/opt/hive/lib/mysql-connector-j-8.0.33.jar:$HADOOP_CLASSPATH"
   "$HIVE_HOME/bin/schematool" -dbType "$DB_DRIVER" "$COMMAND" "$VERBOSE_MODE"
   if [ $? -eq 0 ]; then
     echo "Initialized Hive Metastore Server schema successfully.."
@@ -24,6 +28,8 @@ if [ -d "${HIVE_CUSTOM_CONF_DIR:-}" ]; then
     ln -sfn {} "${HIVE_CONF_DIR}"/ \;
   export HADOOP_CONF_DIR=$HIVE_CONF_DIR
 fi
+
+export HADOOP_CLASSPATH="/opt/hive/lib/hadoop-aws-3.3.4.jar:/opt/hive/lib/aws-java-sdk-bundle-1.12.262.jar:/opt/hive/lib/iceberg-hive-runtime-1.9.2.jar:/opt/hive/lib/mysql-connector-j-8.0.33.jar:$HADOOP_CLASSPATH"
 
 export HADOOP_CLIENT_OPTS="$HADOOP_CLIENT_OPTS -Xmx1G $SERVICE_OPTS \
   -Dfs.s3a.threads.keepalivetime=60000 \

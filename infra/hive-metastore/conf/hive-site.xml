@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <configuration>
-    <!-- Thrift URI (Hive 3.x) -->
+    <!-- Thrift URI (Hive 4.x) -->
     <property>
-        <name>hive.metastore.uris</name>
+        <name>metastore.thrift.uris</name>
         <value>thrift://hive-metastore:9083</value>
     </property>
 
