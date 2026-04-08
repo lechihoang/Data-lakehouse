@@ -15,6 +15,14 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+# Ensure all schemas exist with correct MinIO paths before any model runs.
+# Without this, Trino auto-creates schemas under 'warehouse/' which diverges
+# from the notebook's 'staging/' path, causing "Metadata not found" errors.
+on-run-start:
+  - "CREATE SCHEMA IF NOT EXISTS staging WITH (location = 's3a://lakehouse')"
+  - "CREATE SCHEMA IF NOT EXISTS intermediate WITH (location = 's3a://lakehouse')"
+  - "CREATE SCHEMA IF NOT EXISTS mart WITH (location = 's3a://lakehouse')"
+
 models:
   thelook_lakehouse:
     staging:
