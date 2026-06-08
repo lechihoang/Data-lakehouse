@@ -167,6 +167,24 @@ services:
       retries: 5
     profiles: [core]
 
+  # ─── Schema Registry (Confluent) ───────────────────────────
+  schema-registry:
+    build:
+      context: ./infra/schema-registry
+    container_name: thelook-schema-registry
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    networks:
+      - data_network
+    profiles: [core]
+
   # ─── Debezium ─────────────────────────────────────────────
   debezium:
     build:
@@ -175,6 +193,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      schema-registry:
+        condition: service_started
       postgres:
         condition: service_healthy
     ports:
@@ -302,12 +322,13 @@ services:
       - "8888:8888"
     volumes:
       - ./workspace:/home/jovyan/work
-      - ./infra/jupyter-lab/schemas:/schemas:ro
+      - ./infra/schema-registry/schemas:/schemas:ro
     environment:
       - JUPYTER_ENABLE_LAB=yes
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
       - SPARK_MASTER_URL=spark://spark-master:7077
       - TRINO_URL=http://trino:8080
       - SCHEMA_DIR=/schemas

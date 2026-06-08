@@ -1,63 +1,17 @@
 
-  
+        
+            delete from "delta"."intermediate"."intermediate_orders"
+            where (
+                order_id) in (
+                select order_id
+                from "delta"."intermediate"."intermediate_orders__dbt_tmp"
+            );
+
+        
     
 
-    create table "delta"."intermediate"."intermediate_orders"
-      
-      
-    as (
-      
-
-with __dbt__cte__staging_orders as (
-
-
--- Latest state of each order (deduplicate CDC via kafka_ts watermark)
-SELECT *
-FROM (
-    SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY id ORDER BY kafka_ts DESC) AS rn
-    FROM "delta"."staging"."orders"
-)
-WHERE rn = 1
-),  __dbt__cte__staging_users as (
-
-
--- Latest state of each user (deduplicate CDC via kafka_ts watermark)
-SELECT *
-FROM (
-    SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY id ORDER BY kafka_ts DESC) AS rn
-    FROM "delta"."staging"."users"
-)
-WHERE rn = 1
-) SELECT
-    o.id                                AS order_id,
-    o.status                            AS order_status,
-    o.num_of_items,
-    o.created_at,
-    o.updated_at,
-    o.shipped_at,
-    o.delivered_at,
-    o.returned_at,
-    o.cancelled_at,
-    -- User
-    o.user_id,
-    u.first_name || ' ' || u.last_name  AS customer_name,
-    u.gender                            AS customer_gender,
-    u.age                               AS customer_age,
-    u.country                           AS customer_country,
-    u.state                             AS customer_state,
-    u.city                              AS customer_city,
-    u.latitude                          AS customer_lat,
-    u.longitude                         AS customer_lon,
-    u.created_at                        AS user_registered_at,
-    u.traffic_source,
-    -- Metadata
-    o.kafka_ts
-
-FROM __dbt__cte__staging_orders o
-LEFT JOIN __dbt__cte__staging_users u ON o.user_id = u.id
-
-    );
-
-  
+    insert into "delta"."intermediate"."intermediate_orders" ("order_id", "order_status", "num_of_items", "created_at", "updated_at", "shipped_at", "delivered_at", "returned_at", "cancelled_at", "user_id", "customer_name", "customer_gender", "customer_age", "customer_country", "customer_state", "customer_city", "customer_lat", "customer_lon", "user_registered_at", "traffic_source", "kafka_ts")
+    (
+        select "order_id", "order_status", "num_of_items", "created_at", "updated_at", "shipped_at", "delivered_at", "returned_at", "cancelled_at", "user_id", "customer_name", "customer_gender", "customer_age", "customer_country", "customer_state", "customer_city", "customer_lat", "customer_lon", "user_registered_at", "traffic_source", "kafka_ts"
+        from "delta"."intermediate"."intermediate_orders__dbt_tmp"
+    )

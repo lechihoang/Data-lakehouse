@@ -1,0 +1,1 @@
+CREATE SCHEMA IF NOT EXISTS intermediate WITH (location = 's3a://lakehouse/intermediate/')

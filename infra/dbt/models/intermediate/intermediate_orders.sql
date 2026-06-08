@@ -31,7 +31,7 @@ SELECT
     o.kafka_ts
 
 FROM {{ ref('staging_orders') }} o
-LEFT JOIN {{ ref('staging_users') }} u ON o.user_id = u.id
+INNER JOIN {{ ref('staging_users') }} u ON o.user_id = u.id
 {% if is_incremental() %}
 WHERE o.kafka_ts > (SELECT MAX(kafka_ts) FROM {{ this }})
 {% endif %}

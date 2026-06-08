@@ -2,6 +2,8 @@ FROM bitnamilegacy/spark:3.5.0
 
 USER 0
 
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --no-cache-dir pyarrow pandas fastavro confluent-kafka[avro]
 
 RUN set -eux; \

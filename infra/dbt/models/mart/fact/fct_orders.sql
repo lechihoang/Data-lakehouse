@@ -16,12 +16,12 @@ SELECT
     o.num_of_items,
     o.traffic_source,
     -- Dates and timestamps (Avro stores as ISO string)
-    TRY(CAST(o.created_at AS TIMESTAMP))                             AS order_date,
-    TRY(CAST(o.created_at AS TIMESTAMP))                            AS order_created_at,
-    TRY(CAST(o.shipped_at AS TIMESTAMP))                            AS shipped_at,
-    TRY(CAST(o.delivered_at AS TIMESTAMP))                          AS delivered_at,
-    TRY(CAST(o.returned_at AS TIMESTAMP))                           AS returned_at,
-    TRY(CAST(o.cancelled_at AS TIMESTAMP))                         AS cancelled_at,
+    TRY(CAST(o.created_at AS TIMESTAMP(6)))                             AS order_date,
+    TRY(CAST(o.created_at AS TIMESTAMP(6)))                            AS order_created_at,
+    TRY(CAST(o.shipped_at AS TIMESTAMP(6)))                            AS shipped_at,
+    TRY(CAST(o.delivered_at AS TIMESTAMP(6)))                          AS delivered_at,
+    TRY(CAST(o.returned_at AS TIMESTAMP(6)))                           AS returned_at,
+    TRY(CAST(o.cancelled_at AS TIMESTAMP(6)))                         AS cancelled_at,
     -- Metadata
     o.kafka_ts
 

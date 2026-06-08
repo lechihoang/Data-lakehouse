@@ -55,10 +55,10 @@ SELECT
     oi.kafka_ts
 
 FROM {{ ref('staging_order_items') }} oi
-LEFT JOIN {{ ref('staging_orders') }}       o   ON oi.order_id               = o.id
+INNER JOIN {{ ref('staging_orders') }}       o   ON oi.order_id               = o.id
 LEFT JOIN {{ ref('staging_products') }}     p   ON oi.product_id             = p.id
 LEFT JOIN {{ ref('staging_dist_centers') }} dc  ON p.distribution_center_id = dc.id
-LEFT JOIN {{ ref('staging_users') }}        u   ON o.user_id                 = u.id
+INNER JOIN {{ ref('staging_users') }}        u   ON o.user_id                 = u.id
 
 WHERE oi.order_id IS NOT NULL
 {% if is_incremental() %}

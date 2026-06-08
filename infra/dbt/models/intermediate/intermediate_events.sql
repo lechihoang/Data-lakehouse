@@ -5,6 +5,20 @@
     on_schema_change='append_new_columns'
 ) }}
 
+WITH raw_events AS (
+    SELECT * FROM {{ ref('staging_events') }}
+),
+
+deduped_events AS (
+    SELECT *
+    FROM (
+        SELECT *,
+            ROW_NUMBER() OVER (PARTITION BY id ORDER BY kafka_ts DESC) as rn
+        FROM raw_events
+    )
+    WHERE rn = 1
+)
+
 SELECT
     e.id                                AS event_id,
     e.session_id,
@@ -34,7 +48,7 @@ SELECT
     -- Metadata
     e.kafka_ts
 
-FROM {{ ref('staging_events') }} e
+FROM deduped_events e
 LEFT JOIN {{ ref('staging_users') }} u ON e.user_id = u.id
 {% if is_incremental() %}
 WHERE e.kafka_ts > (SELECT MAX(kafka_ts) FROM {{ this }})

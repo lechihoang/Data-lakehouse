@@ -25,12 +25,12 @@ SELECT
     -- Dates and timestamps (Avro stores as ISO string)
     TRY(CAST(oi.order_created_at AS DATE))                         AS order_date,
     TRY(CAST(oi.item_created_at AS DATE))                          AS item_date,
-    TRY(CAST(oi.order_created_at AS TIMESTAMP))                    AS order_created_at,
-    TRY(CAST(oi.item_created_at AS TIMESTAMP))                      AS item_created_at,
-    TRY(CAST(oi.item_shipped_at AS TIMESTAMP))                    AS item_shipped_at,
-    TRY(CAST(oi.item_delivered_at AS TIMESTAMP))                   AS item_delivered_at,
-    TRY(CAST(oi.item_returned_at AS TIMESTAMP))                    AS item_returned_at,
-    TRY(CAST(oi.item_cancelled_at AS TIMESTAMP))                   AS item_cancelled_at,
+    TRY(CAST(oi.order_created_at AS TIMESTAMP(6)))                    AS order_created_at,
+    TRY(CAST(oi.item_created_at AS TIMESTAMP(6)))                      AS item_created_at,
+    TRY(CAST(oi.item_shipped_at AS TIMESTAMP(6)))                    AS item_shipped_at,
+    TRY(CAST(oi.item_delivered_at AS TIMESTAMP(6)))                   AS item_delivered_at,
+    TRY(CAST(oi.item_returned_at AS TIMESTAMP(6)))                    AS item_returned_at,
+    TRY(CAST(oi.item_cancelled_at AS TIMESTAMP(6)))                   AS item_cancelled_at,
     -- Metadata
     oi.kafka_ts
 

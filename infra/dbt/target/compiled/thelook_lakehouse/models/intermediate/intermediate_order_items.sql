@@ -105,9 +105,11 @@ WHERE rn = 1
     oi.kafka_ts
 
 FROM __dbt__cte__staging_order_items oi
-LEFT JOIN __dbt__cte__staging_orders       o   ON oi.order_id               = o.id
+INNER JOIN __dbt__cte__staging_orders       o   ON oi.order_id               = o.id
 LEFT JOIN __dbt__cte__staging_products     p   ON oi.product_id             = p.id
 LEFT JOIN __dbt__cte__staging_dist_centers dc  ON p.distribution_center_id = dc.id
-LEFT JOIN __dbt__cte__staging_users        u   ON o.user_id                 = u.id
+INNER JOIN __dbt__cte__staging_users        u   ON o.user_id                 = u.id
 
 WHERE oi.order_id IS NOT NULL
+
+    AND oi.kafka_ts > (SELECT MAX(kafka_ts) FROM "delta"."intermediate"."intermediate_order_items")

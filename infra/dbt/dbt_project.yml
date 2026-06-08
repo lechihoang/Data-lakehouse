@@ -19,12 +19,13 @@ clean-targets:
 # Without this, Trino auto-creates schemas under 'warehouse/' which diverges
 # from the notebook's 'staging/' path, causing "Metadata not found" errors.
 on-run-start:
-  - "CREATE SCHEMA IF NOT EXISTS staging WITH (location = 's3a://lakehouse')"
-  - "CREATE SCHEMA IF NOT EXISTS intermediate WITH (location = 's3a://lakehouse')"
-  - "CREATE SCHEMA IF NOT EXISTS mart WITH (location = 's3a://lakehouse')"
+  - "CREATE SCHEMA IF NOT EXISTS staging WITH (location = 's3a://lakehouse/staging/')"
+  - "CREATE SCHEMA IF NOT EXISTS intermediate WITH (location = 's3a://lakehouse/intermediate/')"
+  - "CREATE SCHEMA IF NOT EXISTS mart WITH (location = 's3a://lakehouse/mart/')"
 
 models:
   thelook_lakehouse:
+    +on_table_exists: drop  # Atomic replacement to ensure metadata consistency
     staging:
       +schema: staging
       +materialized: ephemeral
@@ -32,15 +33,16 @@ models:
       +schema: intermediate
       +materialized: incremental
       +incremental_strategy: delete+insert
+      +post-hook:
+        - "ALTER TABLE {{ this }} EXECUTE optimize"
     mart:
       +schema: mart
       +materialized: table
-      +on_table_exists: drop
+      +post-hook:
+        - "ALTER TABLE {{ this }} EXECUTE optimize"
       dim:
         +schema: mart
         +materialized: table
-        +on_table_exists: drop
       fact:
         +schema: mart
         +materialized: table
-        +on_table_exists: drop

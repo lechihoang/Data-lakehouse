@@ -1,6 +1,12 @@
 # Claude
 .claude/
 
+# AI agents
+.agents/
+.agent
+AGENTS.md
+.devin/
+
 # Environment
 
 # Python
@@ -16,6 +22,7 @@ build/
 venv/
 env/
 .mcp.json
+.ruff_cache/
 
 # Jupyter
 .ipynb_checkpoints/

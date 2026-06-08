@@ -48,4 +48,6 @@ WHERE rn = 1
     o.kafka_ts
 
 FROM __dbt__cte__staging_orders o
-LEFT JOIN __dbt__cte__staging_users u ON o.user_id = u.id
+INNER JOIN __dbt__cte__staging_users u ON o.user_id = u.id
+
+WHERE o.kafka_ts > (SELECT MAX(kafka_ts) FROM "delta"."intermediate"."intermediate_orders")

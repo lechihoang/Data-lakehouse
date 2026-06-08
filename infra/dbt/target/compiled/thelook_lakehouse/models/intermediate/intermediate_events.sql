@@ -1,6 +1,6 @@
 
 
-with __dbt__cte__staging_events as (
+WITH  __dbt__cte__staging_events as (
 
 
 -- Web/app events — append-only, no dedup needed
@@ -16,7 +16,21 @@ FROM (
     FROM "delta"."staging"."users"
 )
 WHERE rn = 1
-) SELECT
+), raw_events AS (
+    SELECT * FROM __dbt__cte__staging_events
+),
+
+deduped_events AS (
+    SELECT *
+    FROM (
+        SELECT *,
+            ROW_NUMBER() OVER (PARTITION BY id ORDER BY kafka_ts DESC) as rn
+        FROM raw_events
+    )
+    WHERE rn = 1
+)
+
+SELECT
     e.id                                AS event_id,
     e.session_id,
     e.sequence_number,
@@ -45,5 +59,7 @@ WHERE rn = 1
     -- Metadata
     e.kafka_ts
 
-FROM __dbt__cte__staging_events e
+FROM deduped_events e
 LEFT JOIN __dbt__cte__staging_users u ON e.user_id = u.id
+
+WHERE e.kafka_ts > (SELECT MAX(kafka_ts) FROM "delta"."intermediate"."intermediate_events")

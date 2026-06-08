@@ -1,0 +1,1 @@
+CREATE SCHEMA IF NOT EXISTS mart WITH (location = 's3a://lakehouse/mart/')

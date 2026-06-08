@@ -27,3 +27,5 @@ SELECT
 
 FROM "delta"."intermediate"."intermediate_events" e
 
+
+WHERE e.kafka_ts > (SELECT MAX(kafka_ts) FROM "delta"."mart"."fct_events")

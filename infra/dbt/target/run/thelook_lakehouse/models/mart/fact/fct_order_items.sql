@@ -1,45 +1,17 @@
 
-  
+        
+            delete from "delta"."mart"."fct_order_items"
+            where (
+                order_item_id) in (
+                select order_item_id
+                from "delta"."mart"."fct_order_items__dbt_tmp"
+            );
+
+        
     
 
-    create table "delta"."mart"."fct_order_items"
-      
-      
-    as (
-      
-
--- Grain: 1 row per order item — most granular fact, FK to all dims
-SELECT
-    -- Keys
-    oi.order_item_id,
-    oi.order_id,
-    oi.user_id,
-    oi.product_id,
-    CAST(date_format(date_trunc('day', oi.kafka_ts), '%Y%m%d') AS INTEGER) AS date_key,
-    -- Status
-    oi.order_status,
-    oi.item_status,
-    -- Measures
-    oi.quantity,
-    oi.sale_price,
-    oi.revenue,
-    oi.gross_margin,
-    oi.product_cost,
-    -- Dates and timestamps (Avro stores as ISO string)
-    TRY(CAST(oi.order_created_at AS DATE))                         AS order_date,
-    TRY(CAST(oi.item_created_at AS DATE))                          AS item_date,
-    TRY(CAST(oi.order_created_at AS TIMESTAMP))                    AS order_created_at,
-    TRY(CAST(oi.item_created_at AS TIMESTAMP))                      AS item_created_at,
-    TRY(CAST(oi.item_shipped_at AS TIMESTAMP))                    AS item_shipped_at,
-    TRY(CAST(oi.item_delivered_at AS TIMESTAMP))                   AS item_delivered_at,
-    TRY(CAST(oi.item_returned_at AS TIMESTAMP))                    AS item_returned_at,
-    TRY(CAST(oi.item_cancelled_at AS TIMESTAMP))                   AS item_cancelled_at,
-    -- Metadata
-    oi.kafka_ts
-
-FROM "delta"."intermediate"."intermediate_order_items" oi
-
-
-    );
-
-  
+    insert into "delta"."mart"."fct_order_items" ("order_item_id", "order_id", "user_id", "product_id", "date_key", "order_status", "item_status", "quantity", "sale_price", "revenue", "gross_margin", "product_cost", "order_date", "item_date", "order_created_at", "item_created_at", "item_shipped_at", "item_delivered_at", "item_returned_at", "item_cancelled_at", "kafka_ts")
+    (
+        select "order_item_id", "order_id", "user_id", "product_id", "date_key", "order_status", "item_status", "quantity", "sale_price", "revenue", "gross_margin", "product_cost", "order_date", "item_date", "order_created_at", "item_created_at", "item_shipped_at", "item_delivered_at", "item_returned_at", "item_cancelled_at", "kafka_ts"
+        from "delta"."mart"."fct_order_items__dbt_tmp"
+    )
