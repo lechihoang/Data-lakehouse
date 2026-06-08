@@ -57,7 +57,7 @@ SELECT
     u.latitude,
     u.longitude,
     u.traffic_source,
-    u.registered_at,
+    TRY(CAST(u.registered_at AS TIMESTAMP(6))) AS registered_at,
     COALESCE(p.total_orders, 0)                                      AS total_orders,
     COALESCE(p.total_revenue, CAST(0 AS DECIMAL(18, 2)))           AS total_revenue,
     p.first_order_at,

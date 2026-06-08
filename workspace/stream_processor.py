@@ -50,6 +50,8 @@ SCHEMA_REGISTRY_URL = os.getenv("SCHEMA_REGISTRY_URL", "http://schema-registry:8
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
 MINIO_KEY = os.getenv("MINIO_ROOT_USER", "minio")
 MINIO_SECRET = os.getenv("MINIO_ROOT_PASSWORD", "minio123")
+SPARK_MASTER = os.getenv("SPARK_MASTER_URL", "spark://spark-master:7077")
+TRINO_HOST = os.getenv("TRINO_HOST", "trino")
 
 DELTA_BASE = "s3a://lakehouse/staging"
 CHECKPOINT_BASE = "s3a://lakehouse/checkpoints"
@@ -68,7 +70,7 @@ if active is not None:
 spark = (
     SparkSession.builder
     .appName("TheLookStreaming")
-    .master("local[*]")
+    .master(SPARK_MASTER)
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
     .config("spark.hadoop.fs.s3a.endpoint", MINIO_ENDPOINT)
@@ -141,7 +143,7 @@ print("Helpers ready.")
 import trino
 
 conn = trino.dbapi.connect(
-    host=os.getenv("TRINO_HOST", "trino"), port=8080,
+    host=TRINO_HOST, port=8080,
     user="admin", catalog="delta", schema="staging",
 )
 

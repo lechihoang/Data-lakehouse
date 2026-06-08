@@ -8,44 +8,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 USER $NB_UID
-RUN pip install --no-cache-dir \
-    trino[sqlalchemy] \
-    sqlalchemy-trino \
-    confluent-kafka[avro] \
-    avro-python3 \
-    fastavro \
-    httpx \
-    requests \
-    psycopg2-binary \
-    redis \
-    clickhouse-connect \
-    clickhouse-driver \
-    kafka-python \
-    confluent-kafka \
-    boto3 \
-    s3fs \
-    pyarrow \
-    pandas \
-    polars \
-    duckdb \
-    plotly \
-    bokeh \
-    altair \
-    seaborn \
-    matplotlib \
-    pyspark==3.5.0 \
-    delta-spark==3.0.0
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY requirements.txt .
+RUN uv pip install --system --no-cache -r requirements.txt
 
-RUN pip install --no-cache-dir \
-    jupyterlab-git \
-    jupyterlab-lsp \
-    'python-lsp-server[all]' \
-    black \
-    isort \
-    plotly \
-    ipywidgets \
-    nbresuse \
-    jupyterlab-execute-time
 
 # Download PostgreSQL JDBC driver + Delta Lake JARs (run as root)
 USER root

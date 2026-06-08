@@ -57,7 +57,7 @@ up:
 
 # ─── Down ─────────────────────────────────────────────────────
 down:
-	docker compose down
+	docker compose --profile "*" down
 
 # ─── Status ───────────────────────────────────────────────────
 ps:

@@ -5,15 +5,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jre-headless curl tar git && \
     rm -rf /var/lib/apt/lists/*
 
-USER airflow
-
-# Airflow providers
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# dbt in separate venv (isolated to avoid Airflow dep conflicts)
 USER root
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Install airflow providers system-wide
+COPY requirements.txt .
+RUN uv pip install --system --no-cache -r requirements.txt
+
+# Create venv for dbt and install
 RUN python -m venv /opt/dbt_venv && \
     chown -R airflow:0 /opt/dbt_venv
+COPY requirements-dbt.txt .
+RUN VIRTUAL_ENV=/opt/dbt_venv uv pip install --no-cache -r requirements-dbt.txt
+
+# Switch back to airflow user at the end
 USER airflow
-RUN /opt/dbt_venv/bin/pip install --no-cache-dir dbt-core==1.8.5 dbt-trino==1.8.5
