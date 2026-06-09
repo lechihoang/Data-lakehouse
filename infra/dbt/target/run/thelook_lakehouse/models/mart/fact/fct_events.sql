@@ -1,17 +1,41 @@
 
-        
-            delete from "delta"."mart"."fct_events"
-            where (
-                event_id) in (
-                select event_id
-                from "delta"."mart"."fct_events__dbt_tmp"
-            );
-
-        
+  
     
 
-    insert into "delta"."mart"."fct_events" ("event_id", "user_id", "session_id", "date_key", "sequence_number", "event_type", "uri", "traffic_source", "browser", "ip_address", "city", "state", "postal_code", "is_ghost", "event_date", "event_time", "kafka_ts")
-    (
-        select "event_id", "user_id", "session_id", "date_key", "sequence_number", "event_type", "uri", "traffic_source", "browser", "ip_address", "city", "state", "postal_code", "is_ghost", "event_date", "event_time", "kafka_ts"
-        from "delta"."mart"."fct_events__dbt_tmp"
-    )
+    create table "delta"."mart"."fct_events"
+      
+      
+    as (
+      
+
+-- Grain: 1 row per event
+SELECT
+    -- Keys
+    e.event_id,
+    e.user_id,
+    e.session_id,
+    CAST(date_format(date_trunc('day', TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000))), '%Y%m%d') AS INTEGER) AS date_key,
+    -- Attributes
+    e.sequence_number,
+    e.event_type,
+    e.uri,
+    e.traffic_source,
+    e.browser,
+    e.ip_address,
+    -- Location
+    e.city,
+    e.state,
+    e.postal_code,
+    -- Flags
+    e.is_ghost,
+    -- Timestamps
+    TRY(CAST(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000) AS DATE)) AS event_date,
+    TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000)) AS event_time_ts,
+    e.kafka_ts                                                          AS _dwh_updated_at
+
+FROM "delta"."intermediate"."intermediate_events" e
+
+
+    );
+
+  

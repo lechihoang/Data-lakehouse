@@ -9,9 +9,9 @@ purchase_stats AS (
         user_id,
         COUNT(DISTINCT order_id)                   AS total_orders,
         ROUND(SUM(revenue), 2)                     AS total_revenue,
-        MIN(oi.kafka_ts)                           AS first_order_at,
-        MAX(oi.kafka_ts)                          AS last_order_at,
-        MAX(oi.kafka_ts)                          AS last_order_ts
+        MIN(TRY(from_unixtime(CAST(NULLIF(oi.item_created_at, '') AS DOUBLE) / 1000000))) AS first_order_at,
+        MAX(TRY(from_unixtime(CAST(NULLIF(oi.item_created_at, '') AS DOUBLE) / 1000000))) AS last_order_at,
+        MAX(TRY(from_unixtime(CAST(NULLIF(oi.item_created_at, '') AS DOUBLE) / 1000000))) AS last_order_ts
     FROM "delta"."intermediate"."intermediate_order_items" oi
     WHERE user_id IS NOT NULL
     
@@ -24,7 +24,11 @@ SELECT
     u.last_name,
     u.full_name,
     u.email,
-    u.gender,
+    CASE 
+        WHEN u.gender = 'M' THEN 'Male'
+        WHEN u.gender = 'F' THEN 'Female'
+        ELSE u.gender
+    END                                                               AS gender,
     u.age,
     CASE
         WHEN u.age < 25 THEN '18-24'
@@ -39,7 +43,7 @@ SELECT
     u.latitude,
     u.longitude,
     u.traffic_source,
-    TRY(CAST(u.registered_at AS TIMESTAMP(6))) AS registered_at,
+    TRY(from_unixtime(CAST(NULLIF(u.registered_at, '') AS DOUBLE) / 1000000)) AS registered_at,
     COALESCE(p.total_orders, 0)                                      AS total_orders,
     COALESCE(p.total_revenue, CAST(0 AS DECIMAL(18, 2)))           AS total_revenue,
     p.first_order_at,
@@ -51,7 +55,7 @@ SELECT
         WHEN COALESCE(p.total_revenue, 0) >  0    THEN 'low'
         ELSE 'no_purchase'
     END                                                               AS customer_tier,
-    GREATEST(u.kafka_ts, COALESCE(p.last_order_ts, TIMESTAMP '1970-01-01')) AS last_updated_ts
+    GREATEST(u.kafka_ts, COALESCE(p.last_order_ts, TIMESTAMP '1970-01-01')) AS _dwh_updated_at
 
 FROM "delta"."intermediate"."intermediate_users" u
 LEFT JOIN purchase_stats p ON u.user_id = p.user_id

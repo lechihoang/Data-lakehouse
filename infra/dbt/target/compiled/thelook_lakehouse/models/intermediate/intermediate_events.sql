@@ -61,5 +61,3 @@ SELECT
 
 FROM deduped_events e
 LEFT JOIN __dbt__cte__staging_users u ON e.user_id = u.id
-
-WHERE e.kafka_ts > (SELECT MAX(kafka_ts) FROM "delta"."intermediate"."intermediate_events")

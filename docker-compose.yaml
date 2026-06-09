@@ -352,7 +352,7 @@ services:
       --db-schema public
       --db-batch-size 1000
       --init-num-users 1000
-      --avg-qps 20
+      --avg-qps 150
     depends_on:
       postgres:
         condition: service_healthy

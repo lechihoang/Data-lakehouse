@@ -4,21 +4,11 @@
 -- Safety window: reprocess sessions with events in last 2h to handle sessions spanning batch boundaries
 
 
-WITH watermark AS (
-    SELECT MAX(last_event_ts) - INTERVAL '2' HOUR AS cutoff FROM "delta"."mart"."fct_sessions"
-),
-recent_session_ids AS (
-    SELECT DISTINCT e.session_id
-    FROM "delta"."intermediate"."intermediate_events" e
-    CROSS JOIN watermark w
-    WHERE e.kafka_ts > w.cutoff
-)
-
 
 SELECT
     session_id,
     MAX(user_id)                                                        AS user_id,
-    CAST(date_format(date_trunc('day', MIN(e.kafka_ts)), '%Y%m%d') AS INTEGER) AS date_key,
+    CAST(date_format(date_trunc('day', MIN(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000)))), '%Y%m%d') AS INTEGER) AS date_key,
     MAX(traffic_source)                                                 AS traffic_source,
     MAX(browser)                                                        AS browser,
     MAX(city)                                                           AS city,
@@ -34,19 +24,18 @@ SELECT
     MAX(CASE WHEN event_type = 'cancel'                    THEN 1 ELSE 0 END) AS hit_cancel,
     MAX(CASE WHEN event_type = 'return'                    THEN 1 ELSE 0 END) AS hit_return,
     -- Date
-    date(MIN(e.kafka_ts))                                               AS session_date,
+    TRY(CAST(MIN(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000)) AS DATE)) AS session_date,
     -- Measures
     COUNT(event_id)                                                     AS total_events,
-    MIN(e.kafka_ts)                                                     AS session_start_at,
-    MAX(e.kafka_ts)                                                     AS session_end_at,
-    date_diff('second', MIN(e.kafka_ts), MAX(e.kafka_ts))             AS session_duration_seconds,
+    MIN(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000))) AS session_start_at,
+    MAX(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000))) AS session_end_at,
+    date_diff('second', MIN(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000))), MAX(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000)))) AS session_duration_seconds,
     -- Watermark for incremental runs
-    MAX(e.kafka_ts)                                                    AS last_event_ts
+    MAX(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000))) AS last_event_ts,
+    MAX(e.kafka_ts)                                                             AS _dwh_updated_at
 
 FROM "delta"."intermediate"."intermediate_events" e
 
-
-WHERE session_id IN (SELECT session_id FROM recent_session_ids)
 
 
 GROUP BY 1

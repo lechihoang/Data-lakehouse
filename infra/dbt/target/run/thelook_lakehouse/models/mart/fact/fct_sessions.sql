@@ -1,17 +1,52 @@
 
-        
-            delete from "delta"."mart"."fct_sessions"
-            where (
-                session_id) in (
-                select session_id
-                from "delta"."mart"."fct_sessions__dbt_tmp"
-            );
-
-        
+  
     
 
-    insert into "delta"."mart"."fct_sessions" ("session_id", "user_id", "date_key", "traffic_source", "browser", "city", "state", "customer_country", "is_ghost", "hit_home", "hit_browse", "hit_product", "hit_cart", "hit_purchase", "hit_cancel", "hit_return", "session_date", "total_events", "session_start_at", "session_end_at", "session_duration_seconds", "last_event_ts")
-    (
-        select "session_id", "user_id", "date_key", "traffic_source", "browser", "city", "state", "customer_country", "is_ghost", "hit_home", "hit_browse", "hit_product", "hit_cart", "hit_purchase", "hit_cancel", "hit_return", "session_date", "total_events", "session_start_at", "session_end_at", "session_duration_seconds", "last_event_ts"
-        from "delta"."mart"."fct_sessions__dbt_tmp"
-    )
+    create table "delta"."mart"."fct_sessions"
+      
+      
+    as (
+      
+
+-- Grain: 1 row per session
+-- Safety window: reprocess sessions with events in last 2h to handle sessions spanning batch boundaries
+
+
+
+SELECT
+    session_id,
+    MAX(user_id)                                                        AS user_id,
+    CAST(date_format(date_trunc('day', MIN(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000)))), '%Y%m%d') AS INTEGER) AS date_key,
+    MAX(traffic_source)                                                 AS traffic_source,
+    MAX(browser)                                                        AS browser,
+    MAX(city)                                                           AS city,
+    MAX(state)                                                          AS state,
+    MAX(customer_country)                                               AS customer_country,
+    bool_or(is_ghost)                                                   AS is_ghost,
+    -- Funnel stages
+    MAX(CASE WHEN event_type = 'home'                      THEN 1 ELSE 0 END) AS hit_home,
+    MAX(CASE WHEN event_type IN ('department', 'category') THEN 1 ELSE 0 END) AS hit_browse,
+    MAX(CASE WHEN event_type = 'product'                   THEN 1 ELSE 0 END) AS hit_product,
+    MAX(CASE WHEN event_type = 'cart'                      THEN 1 ELSE 0 END) AS hit_cart,
+    MAX(CASE WHEN event_type = 'purchase'                  THEN 1 ELSE 0 END) AS hit_purchase,
+    MAX(CASE WHEN event_type = 'cancel'                    THEN 1 ELSE 0 END) AS hit_cancel,
+    MAX(CASE WHEN event_type = 'return'                    THEN 1 ELSE 0 END) AS hit_return,
+    -- Date
+    TRY(CAST(MIN(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000)) AS DATE)) AS session_date,
+    -- Measures
+    COUNT(event_id)                                                     AS total_events,
+    MIN(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000))) AS session_start_at,
+    MAX(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000))) AS session_end_at,
+    date_diff('second', MIN(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000))), MAX(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000)))) AS session_duration_seconds,
+    -- Watermark for incremental runs
+    MAX(TRY(from_unixtime(CAST(NULLIF(e.event_time, '') AS DOUBLE) / 1000000))) AS last_event_ts,
+    MAX(e.kafka_ts)                                                             AS _dwh_updated_at
+
+FROM "delta"."intermediate"."intermediate_events" e
+
+
+
+GROUP BY 1
+    );
+
+  

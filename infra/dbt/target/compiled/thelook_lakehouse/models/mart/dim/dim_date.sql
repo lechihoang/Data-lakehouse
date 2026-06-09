@@ -18,5 +18,3 @@ SELECT
     CASE WHEN day_of_week(full_date) IN (6, 7) THEN TRUE ELSE FALSE END AS is_weekend
 FROM date_spine
 
-
-WHERE full_date > (SELECT MAX(full_date) FROM "delta"."mart"."dim_date")

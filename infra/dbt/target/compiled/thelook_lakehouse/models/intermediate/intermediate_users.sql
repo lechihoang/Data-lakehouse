@@ -34,5 +34,3 @@ SELECT
 
 FROM __dbt__cte__staging_users u
 
-
-WHERE u.kafka_ts > (SELECT MAX(kafka_ts) FROM "delta"."intermediate"."intermediate_users")

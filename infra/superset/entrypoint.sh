@@ -14,4 +14,9 @@ superset init
 
 superset import-datasources -p /app/conf/databases.yaml
 
+if [ -f /app/dashboard.zip ]; then
+    echo "Importing dashboard.zip..."
+    superset import-dashboards -p /app/dashboard.zip -u "$SUPERSET_ADMIN_USERNAME"
+fi
+
 superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger
