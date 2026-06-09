@@ -8,7 +8,7 @@ SELECT *
 FROM (
     SELECT *,
         ROW_NUMBER() OVER (PARTITION BY id ORDER BY event_ts_ms DESC) AS rn
-    FROM "delta"."staging"."products"
+    FROM "delta"."staging"."ref_products"
 )
 WHERE rn = 1
 ),  __dbt__cte__staging_dist_centers as (
@@ -19,7 +19,7 @@ SELECT *
 FROM (
     SELECT *,
         ROW_NUMBER() OVER (PARTITION BY id ORDER BY event_ts_ms DESC) AS rn
-    FROM "delta"."staging"."dist_centers"
+    FROM "delta"."staging"."ref_dist_centers"
 )
 WHERE rn = 1
 ) -- Product dimension: latest catalog state with distribution center info
@@ -42,5 +42,3 @@ SELECT
 FROM __dbt__cte__staging_products p
 LEFT JOIN __dbt__cte__staging_dist_centers dc ON p.distribution_center_id = dc.id
 
-
-WHERE p.event_ts_ms > (SELECT MAX(event_ts_ms) FROM "delta"."intermediate"."intermediate_products")

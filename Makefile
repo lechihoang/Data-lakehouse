@@ -62,3 +62,7 @@ down:
 # ─── Status ───────────────────────────────────────────────────
 ps:
 	@docker compose ps
+
+# ─── Test ─────────────────────────────────────────────────────
+test:
+	docker compose exec airflow-scheduler /opt/dbt_venv/bin/dbt test --project-dir /opt/airflow/dbt --profiles-dir /opt/airflow/dbt

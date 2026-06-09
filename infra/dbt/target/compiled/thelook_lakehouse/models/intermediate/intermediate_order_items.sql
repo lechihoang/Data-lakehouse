@@ -30,7 +30,7 @@ SELECT *
 FROM (
     SELECT *,
         ROW_NUMBER() OVER (PARTITION BY id ORDER BY event_ts_ms DESC) AS rn
-    FROM "delta"."staging"."products"
+    FROM "delta"."staging"."ref_products"
 )
 WHERE rn = 1
 ),  __dbt__cte__staging_dist_centers as (
@@ -41,7 +41,7 @@ SELECT *
 FROM (
     SELECT *,
         ROW_NUMBER() OVER (PARTITION BY id ORDER BY event_ts_ms DESC) AS rn
-    FROM "delta"."staging"."dist_centers"
+    FROM "delta"."staging"."ref_dist_centers"
 )
 WHERE rn = 1
 ),  __dbt__cte__staging_users as (
@@ -111,5 +111,3 @@ LEFT JOIN __dbt__cte__staging_dist_centers dc  ON p.distribution_center_id = dc.
 INNER JOIN __dbt__cte__staging_users        u   ON o.user_id                 = u.id
 
 WHERE oi.order_id IS NOT NULL
-
-    AND oi.kafka_ts > (SELECT MAX(kafka_ts) FROM "delta"."intermediate"."intermediate_order_items")

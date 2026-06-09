@@ -86,6 +86,7 @@ sources:
           - name: created_at
           - name: updated_at
       - name: products
+        identifier: ref_products
         description: "Static product catalog bootstrapped from PostgreSQL"
         freshness: null
         columns:
@@ -101,6 +102,7 @@ sources:
           - name: operation
           - name: event_ts_ms
       - name: dist_centers
+        identifier: ref_dist_centers
         description: "Static distribution centers bootstrapped from PostgreSQL"
         freshness: null
         columns:

@@ -3,22 +3,6 @@
 WITH
 
 
-watermark AS (
-    SELECT COALESCE(MAX(last_updated_ts), TIMESTAMP '1970-01-01') AS cutoff FROM "delta"."mart"."dim_customers"
-),
-changed_users AS (
-    SELECT DISTINCT u.user_id
-    FROM "delta"."intermediate"."intermediate_users" u
-    CROSS JOIN watermark w
-    WHERE u.kafka_ts > w.cutoff
-    UNION
-    SELECT DISTINCT oi.user_id
-    FROM "delta"."intermediate"."intermediate_order_items" oi
-    CROSS JOIN watermark w
-    WHERE oi.kafka_ts > w.cutoff
-      AND oi.user_id IS NOT NULL
-),
-
 
 purchase_stats AS (
     SELECT
@@ -30,8 +14,6 @@ purchase_stats AS (
         MAX(oi.kafka_ts)                          AS last_order_ts
     FROM "delta"."intermediate"."intermediate_order_items" oi
     WHERE user_id IS NOT NULL
-    
-      AND user_id IN (SELECT user_id FROM changed_users)
     
     GROUP BY 1
 )
@@ -74,5 +56,3 @@ SELECT
 FROM "delta"."intermediate"."intermediate_users" u
 LEFT JOIN purchase_stats p ON u.user_id = p.user_id
 
-
-WHERE u.user_id IN (SELECT user_id FROM changed_users)

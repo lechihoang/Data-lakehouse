@@ -31,5 +31,3 @@ SELECT
 
 FROM "delta"."intermediate"."intermediate_order_items" oi
 
-
-WHERE oi.kafka_ts > (SELECT MAX(kafka_ts) FROM "delta"."mart"."fct_order_items")
