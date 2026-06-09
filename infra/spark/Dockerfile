@@ -24,7 +24,10 @@ RUN set -eux; \
     echo "a65839fbf1869f81a1632e09f415e586922e4f80  ${SPARK_HOME}/jars/hadoop-aws-3.3.4.jar" | sha1sum -c -; \
     curl -fSL -o "${SPARK_HOME}/jars/aws-java-sdk-bundle-1.12.791.jar" "https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.791/aws-java-sdk-bundle-1.12.791.jar" && \
     echo "5019ec0be42cd37b630189bbb1d5307c6c9f1c5e  ${SPARK_HOME}/jars/aws-java-sdk-bundle-1.12.791.jar" | sha1sum -c - && \
-    curl -fSL -o "${SPARK_HOME}/jars/hive-metastore-4.1.0.jar" "https://repo1.maven.org/maven2/org/apache/hive/hive-metastore/4.1.0/hive-metastore-4.1.0.jar"
+    curl -fSL -o "${SPARK_HOME}/jars/hive-metastore-4.1.0.jar" "https://repo1.maven.org/maven2/org/apache/hive/hive-metastore/4.1.0/hive-metastore-4.1.0.jar" && \
+    curl -fSL -o "${SPARK_HOME}/jars/postgresql-42.7.3.jar" "https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.3/postgresql-42.7.3.jar" && \
+    curl -fSL -o "${SPARK_HOME}/jars/delta-storage-3.0.0.jar" "https://repo1.maven.org/maven2/io/delta/delta-storage/3.0.0/delta-storage-3.0.0.jar" && \
+    curl -fSL -o "${SPARK_HOME}/jars/spark-avro_2.12-3.5.0.jar" "https://repo1.maven.org/maven2/org/apache/spark/spark-avro_2.12/3.5.0/spark-avro_2.12-3.5.0.jar"
 
 COPY conf/spark-defaults.conf ${SPARK_HOME}/conf/spark-defaults.conf
 COPY conf/hive-site.xml ${SPARK_HOME}/conf/hive-site.xml

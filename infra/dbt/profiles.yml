@@ -10,3 +10,4 @@ thelook_trino:
       database: delta
       schema: silver
       threads: 4
+      http_timeout: 600
