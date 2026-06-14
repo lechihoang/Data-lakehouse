@@ -4,6 +4,16 @@
 -- Safety window: reprocess sessions with events in last 2h to handle sessions spanning batch boundaries
 
 
+WITH watermark AS (
+    SELECT COALESCE(MAX(_dwh_updated_at), TIMESTAMP '1970-01-01') - INTERVAL '2' HOUR AS cutoff FROM "delta"."mart"."fct_sessions"
+),
+recent_session_ids AS (
+    SELECT DISTINCT e.session_id
+    FROM "delta"."intermediate"."intermediate_events" e
+    CROSS JOIN watermark w
+    WHERE e.kafka_ts > w.cutoff
+)
+
 
 SELECT
     session_id,
@@ -36,6 +46,8 @@ SELECT
 
 FROM "delta"."intermediate"."intermediate_events" e
 
+
+WHERE session_id IN (SELECT session_id FROM recent_session_ids)
 
 
 GROUP BY 1

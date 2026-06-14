@@ -32,10 +32,10 @@ mariadb/
 minio/
 
 # dbt generated
-dbt/.user.yml
-dbt/target/
-dbt/logs/
-dbt/dbt_packages/
+infra/dbt/.user.yml
+infra/dbt/target/
+infra/dbt/logs/
+infra/dbt/dbt_packages/
 CLAUDE.md
 
 # Logs

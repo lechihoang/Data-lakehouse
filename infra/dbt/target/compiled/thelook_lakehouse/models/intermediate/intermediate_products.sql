@@ -42,3 +42,5 @@ SELECT
 FROM __dbt__cte__staging_products p
 LEFT JOIN __dbt__cte__staging_dist_centers dc ON p.distribution_center_id = dc.id
 
+
+WHERE p.event_ts_ms > (SELECT MAX(event_ts_ms) FROM "delta"."intermediate"."intermediate_products")

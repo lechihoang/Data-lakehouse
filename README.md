@@ -21,14 +21,21 @@ A streaming data lakehouse built on the **TheLook E-commerce** dataset, followin
 
 ## Documentation
 
-Detailed technical documentation is in `docs/`:
+Detailed technical documentation is split between system-level concepts and component-level implementations:
+
+**System Architecture & Modeling (`docs/`):**
 - [Architecture](docs/architecture.md) — System overview, data flow, Medallion layers
 - [Datasource](docs/datasource.md) — CDC pipeline: PostgreSQL → Debezium → Kafka → Spark
-- [Airflow](docs/airflow.md) — DAG orchestration, task groups, Cosmos integration
-- [dbt](docs/dbt.md) — Transformation models, materialization, tests
 - [Datamodel](docs/datamodel.md) — Star schema: columns, relationships, SCD, fact/dim tables
-- [Trino](docs/trino.md) — Query engine, HMS integration, schema routing
-- [Notebook](docs/notebook.md) — JupyterLab streaming notebook, HMS registration
+
+**Component Documentation (`infra/`):**
+- [Airflow](infra/airflow/README.md) — DAG orchestration, task groups, Cosmos integration
+- [dbt](infra/dbt/README.md) — Transformation models, materialization, tests
+- [Trino](infra/trino/README.md) — Query engine, HMS integration, schema routing
+- [Superset](infra/superset/README.md) — BI Dashboard design and layout
+- [Spark](infra/spark/README.md) — Spark Structured Streaming configurations
+- [Kafka](infra/kafka/README.md) / [Debezium](infra/debezium/README.md) — CDC streaming pipeline
+- [JupyterLab](infra/jupyter-lab/README.md) — Streaming notebook & HMS registration
 
 ---
 
@@ -118,6 +125,8 @@ The generator simulates realistic e-commerce activity — user registrations, or
 
 ## 5. Data Modeling
 
+![Data Lineage Graph](./static/lineage_graph.png)
+
 The analytical schema follows a **star schema** pattern optimized for BI queries:
 
 - **Dimensions:** `dim_customers`, `dim_products`, `dim_date` — slowly changing attributes, customer tiers, product price tiers.
@@ -138,6 +147,8 @@ Key modeling decisions:
 
 - **Spark Structured Streaming**
   Spark 3.5 reads from Kafka using the `kafka` source, parses JSON using `from_json()` with locally-defined StructTypes (schemas from `.avsc` files as reference), and writes micro-batches to Delta Lake on MinIO every trigger interval. Checkpointing ensures exactly-once semantics across restarts.
+  
+  ![JupyterLab Streaming Notebook](./static/notebook.png)
 
 - **Delta Lake on MinIO**
   All layers (staging, intermediate, mart) use Delta Lake format, providing ACID transactions, schema enforcement, and time-travel capabilities on S3-compatible object storage.
@@ -150,6 +161,8 @@ Key modeling decisions:
 
 - **Airflow Orchestration**
   Airflow 3.0 DAGs orchestrate the full pipeline: data generation → CDC capture → Spark streaming → dbt transformation → data freshness checks. Cosmos provider enables native dbt integration with Airflow.
+  
+  ![Airflow DAG](./static/dag.png)
 
 - **Data Generator**
   A Python-based synthetic data generator produces realistic TheLook e-commerce events (orders, items, users, products, events, sessions) and inserts them into PostgreSQL, triggering CDC events downstream.
@@ -249,7 +262,9 @@ docker compose exec dbt dbt run --project-dir /dbt --profiles-dir /dbt
 
 ## 11. Dashboards
 
-Update in future
+![Superset Dashboard](./static/dashboard.png)
+
+The project includes a real-time Executive Dashboard built in Apache Superset, which auto-refreshes to reflect low-latency data streaming from the Lakehouse.
 
 ---
 

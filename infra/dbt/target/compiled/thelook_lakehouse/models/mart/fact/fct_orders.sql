@@ -21,3 +21,5 @@ SELECT
 
 FROM "delta"."intermediate"."intermediate_orders" o
 
+
+WHERE o.kafka_ts > (SELECT COALESCE(MAX(_dwh_updated_at), TIMESTAMP '1970-01-01') FROM "delta"."mart"."fct_orders")
