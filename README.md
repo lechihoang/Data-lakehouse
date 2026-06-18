@@ -19,26 +19,6 @@ A streaming data lakehouse built on the **TheLook E-commerce** dataset, followin
 
 ---
 
-## Documentation
-
-Detailed technical documentation is split between system-level concepts and component-level implementations:
-
-**System Architecture & Modeling (`docs/`):**
-- [Architecture](docs/architecture.md) — System overview, data flow, Medallion layers
-- [Datasource](docs/datasource.md) — CDC pipeline: PostgreSQL → Debezium → Kafka → Spark
-- [Datamodel](docs/datamodel.md) — Star schema: columns, relationships, SCD, fact/dim tables
-
-**Component Documentation (`infra/`):**
-- [Airflow](infra/airflow/README.md) — DAG orchestration, task groups, Cosmos integration
-- [dbt](infra/dbt/README.md) — Transformation models, materialization, tests
-- [Trino](infra/trino/README.md) — Query engine, HMS integration, schema routing
-- [Superset](infra/superset/README.md) — BI Dashboard design and layout
-- [Spark](infra/spark/README.md) — Spark Structured Streaming configurations
-- [Kafka](infra/kafka/README.md) / [Debezium](infra/debezium/README.md) — CDC streaming pipeline
-- [JupyterLab](infra/jupyter-lab/README.md) — Streaming notebook & HMS registration
-
----
-
 ## Table of Contents
 
 1. [Overview](#1-overview)
